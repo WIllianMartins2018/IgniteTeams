@@ -26,7 +26,7 @@ export function Players() {
             <Header showBackButton />
 
             <Highlight
-                title="Nome da Turma"
+                title={group}
                 subtitle="Adcione a Galera e Separe os times"
             />
             <Form>
