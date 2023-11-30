@@ -5,17 +5,13 @@ import { playersGetByGroup } from "./playersGetByGroup";
 import { AppError } from "../../utils/AppError";
 
 
-export async function playerAddByGroup(newPlayer: PlayerStorageDTO, group: string) {
+export async function playerRemoveGroup(playerRemove: PlayerStorageDTO, group: string) {
     try {
         const storedPlayers = await playersGetByGroup(group);
 
-        const playersAlreadyExists = storedPlayers.filter(player => player.name === newPlayer.name);
+        const newStoredPlayers = storedPlayers.filter(player => player.name !== playerRemove.name);
 
-        if (playersAlreadyExists.length > 0) {
-            throw new AppError("Player ja Cadastrado em um Time");
-        }
-
-        const storage = JSON.stringify([...storedPlayers , newPlayer]);
+        const storage = JSON.stringify([...newStoredPlayers]);
 
         await AsyncStorage.setItem(`${PLAYER_COLLECTION}-${group}`, storage);
 
