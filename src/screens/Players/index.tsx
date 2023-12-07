@@ -4,18 +4,19 @@ import { Highlight } from "../../components/Highlight";
 import { ButtonIcon } from "../../components/ButtonIcon";
 import { Input } from "../../components/Input";
 import { Filter } from "../../components/Filter";
-import { Alert, FlatList } from "react-native";
-import { useEffect, useState } from "react";
+import { Alert, FlatList, TextInput } from "react-native";
+import { useEffect, useRef, useState } from "react";
 import { PlayerCard } from "../../components/PlayerCard";
 import { ListEmpty } from "../../components/ListEmpty";
 import { Button } from "../../components/Button";
-import { useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { AppError } from "../../utils/AppError";
 import { PlayerStorageDTO } from "../../storage/player/PlayerStorageDTO";
 import { playerAddByGroup } from "../../storage/player/playerAddByGroup";
 import { playersGetByGroup } from "../../storage/player/playersGetByGroup";
 import { playersGetByGroupAndTeam } from "../../storage/player/playersGetByGroupAndTeam";
 import { playerRemoveGroup } from "../../storage/player/playerRemoveGroup";
+import { groupRemoveByName } from "../../storage/group/groupRemoveByName";
 
 type RouteParams = {
   group: string;
@@ -27,13 +28,16 @@ export function Players() {
   const [team, setTeam] = useState<string>('Time A');
   const [players, setPlayers] = useState<PlayerStorageDTO[]>([]);
   const { group } = route.params as RouteParams;
+  const navigate = useNavigation();
+
+  const newPlayerNameInputRef = useRef<TextInput>(null);
 
   async function handleAddPlayer() {
     if (newPlayerName.trim().length === 0) {
       return Alert.alert("Novo Player", "INFORME O NOME DA PESSOA.");
     }
 
-    const newPLayer : PlayerStorageDTO = {
+    const newPLayer: PlayerStorageDTO = {
       name: newPlayerName,
       team
     }
@@ -41,6 +45,10 @@ export function Players() {
     try {
       await playerAddByGroup(newPLayer, group);
 
+      newPlayerNameInputRef.current!.blur();
+
+      setNewPlayerName('');
+      fetchPlayersByTeam();
     } catch (error) {
       if (error instanceof AppError) {
         Alert.alert('Novo Player', error.message);
@@ -51,6 +59,29 @@ export function Players() {
       }
     }
   }
+
+  async function groupRemove() {
+    try {
+      await groupRemoveByName(group);
+      
+      navigate.navigate('groups');
+
+    }catch(error) {
+      console.log(error);
+    }
+  }
+
+  async function handleGroupRemove() {
+    Alert.alert(
+      "Remover",
+      "Deseja Remover o Grupo",
+      [
+        {text: "Não", style: "cancel"},
+        {text: "Sim", onPress: () => groupRemove()}
+      ]
+    )
+  }
+
 
   async function handleRemovePlayer(player: PlayerStorageDTO) {
     try {
@@ -63,7 +94,7 @@ export function Players() {
     try {
       const playersByTeam = await playersGetByGroupAndTeam(group, team);
       fetchPlayersByTeam();
-      
+
       setPlayers(playersByTeam);
     } catch (error) {
       console.log(error);
@@ -73,7 +104,7 @@ export function Players() {
 
   useEffect(() => {
     fetchPlayersByTeam();
-  }, [team])
+  }, [])
 
   return (
     <Container>
@@ -85,9 +116,13 @@ export function Players() {
       />
       <Form>
         <Input
+          inputRef={newPlayerNameInputRef}
           placeholder="Nome Da Pessoa"
+          value={newPlayerName}
           autoCorrect={false}
           onChangeText={setNewPlayerName}
+          onSubmitEditing={handleAddPlayer}
+          returnKeyType="done"
         />
 
         <ButtonIcon
@@ -123,7 +158,7 @@ export function Players() {
         renderItem={({ item }) => (
           <PlayerCard
             name={item.name}
-            onRemove={() => {handleRemovePlayer(item)}}
+            onRemove={() => { handleRemovePlayer(item) }}
           />
         )}
         showsVerticalScrollIndicator={false}
@@ -141,6 +176,7 @@ export function Players() {
       <Button
         title="REMOVER TURMA"
         type="SECONDARY"
+        onPress={handleGroupRemove}
       />
 
     </Container>
